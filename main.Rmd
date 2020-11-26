@@ -6,6 +6,10 @@ output: ioslides_presentation
 ---
 
 ```{r setup, include=FALSE}
+library(here)
+library(magrittr)
+library()
+
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -22,6 +26,29 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## The Problem:
 
+
+```{r}
+dd <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
+
+leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) %>% 
+  leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
+  leaflet::hideGroup("Route") %>%
+  leaflet::addLayersControl(
+    overlayGroups = c("Route", "Punkte")
+  ) %>% 
+  leaflet::addCircles(
+    data = dd$points,
+    color = "crimson",
+    radius = 1,
+    group = "Punkte"
+  ) %>%
+  leaflet::addPolylines(
+    data = dd$sf, 
+    group = "Route"
+  )
+
+
+```
 
 
 
