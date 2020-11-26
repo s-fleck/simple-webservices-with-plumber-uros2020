@@ -1,0 +1,66 @@
+---
+title: "Simple Webservices with Plumber"
+author: "Stefan Fleck"
+date: "11/19/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+
+## The Problem:
+
+
+
+
+## What is a Web Service?
+
+* A service that runs on a server and responds to requests
+* Makes it possible 
+
+```
+
+client <-----> server
+
+```
+
+
+## What is a RESTful API
+
+* API: Application Interface (as upposed to User Interface)
+* REST: Representational state transfer (REST) is Standard for creating webservices.
+
+
+## How is it useful?
+
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
+
+§ Further reading
+
+* plumber: https://github.com/rstudio/plumber
+* httr: https://github.com/r-lib/httr
+* HTTP Methods explained: https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
