@@ -9,6 +9,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(here)
+library(httr)
 library(magrittr)
 library(leaflet)
 library(leaflet.extras)
@@ -18,13 +19,6 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 ## R Markdown
 
-
-
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
 
 
 ## The Problem:
@@ -84,14 +78,54 @@ client <-HTTP-> server
 
 ## How is it useful?
 
+## Code examples
+```{r echo = TRUE, eval = FALSE}
+#* Calculate route paramters
+#* @param ride_id integer id 
+#* @response 400 Impossible Route Rrror: routing not possible (e.g. Islands)
+#* @response 503 Service Unavailable Error: Likely too many requests to routing-backend, please try again later
+#* @response 504 Gateway Timeout Error: routing backend may be down.
+#* @response 200 a JSON object containing distanceAustria, distanceForeign
+#*
+#* @get /v1/rides/<id>/summary
+rides_summary <- function(
+  id = "",  # from the path definition above
+  req,  # special plumber object: the Request
+  res   # special plumber object: the Response
+){
+  r <- tryCatch({
+    calculate_fastest_route(id)
+  },
+    impossible_route_error = function(e){res$status <- 400},
+    service_unavailable_error = function(e){res$status <- 503},
+    gateway_timeout_error = function(e){res$status <- 504}
+  )
 
-```{R}
-res <- HTTR::GET
-
+  r
+}
 ```
 
+```{r echo = TRUE, eval = FALSE}
+res <- httr::GET("https://<...>/rides/12345/summary")
+httr::content(res)
 
-§ Further reading
+## $distanceAustria
+## [1] 297334.3
+## 
+## $distanceForeign
+## [1] 0
+```
+
+real examples (will only work inside STAT)
+https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/summary
+https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/map
+
+## Pitfalls of plumber
+
+  * v.1.0.0 was released this year (2020) but still some rough edges
+  * documentation lacking
+
+## Further reading
 
 * plumber: https://github.com/rstudio/plumber
 * httr: https://github.com/r-lib/httr
