@@ -3,9 +3,23 @@ title: "Simple Webservices with Plumber"
 author: "Stefan Fleck"
 date: "11/19/2020"
 output: ioslides_presentation
+widescreen: true
 editor_options: 
   chunk_output_type: console
 ---
+
+<style>
+div.footer {
+  position: absolute;
+  bottom: 0;
+  margin-bottom: 10px;
+  width: 80%;
+  font-size: 0.6em;
+}
+</style>
+
+
+
 
 ```{r setup, include=FALSE}
 library(here)
@@ -48,6 +62,46 @@ leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE))  %>%
 
 ```
 
+## The solution {data-background=img/cogwheels-bg.svg data-background-size=cover}
+
+1. clean up points
+  * remove points where reported speed is less thank 7kph (walking)
+  * remove points where GPS accuracy is less than 20m
+  * remove points where calculated speed is greater than 130kph (outliers)
+2. route with routing backend where points are further than 50m apart
+3. discard unrealistic routes (speed greater 130kph)
+4. connect remaining points with straight lines
+
+
+## The Problem:
+
+
+```{r}
+dd <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
+
+leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE))  %>%
+  addFullscreenControl() %>% 
+  leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
+  leaflet::hideGroup("Route") %>%
+  leaflet::addLayersControl(
+    overlayGroups = c("Route", "Punkte")
+  ) %>% 
+  leaflet::addCircles(
+    data = dd$points,
+    color = "crimson",
+    radius = 1,
+    group = "Punkte"
+  ) %>%
+  leaflet::addPolylines(
+    data = dd$sf, 
+    group = "Route"
+  )
+
+
+```
+
+
+
 
 ## How do we 
 
@@ -78,32 +132,38 @@ client <-HTTP-> server
 
 ## How is it useful?
 
-## Code examples
+## Code examples {.smaller}
+
 ```{r echo = TRUE, eval = FALSE}
-#* Calculate route paramters
+#* Calculate the fastest route 
 #* @param ride_id integer id 
 #* @response 400 Impossible Route Rrror: routing not possible (e.g. Islands)
-#* @response 503 Service Unavailable Error: Likely too many requests to routing-backend, please try again later
 #* @response 504 Gateway Timeout Error: routing backend may be down.
-#* @response 200 a JSON object containing distanceAustria, distanceForeign
 #*
 #* @get /v1/rides/<id>/summary
 rides_summary <- function(
   id = "",  # from the path definition above
-  req,  # special plumber object: the Request
   res   # special plumber object: the Response
 ){
   r <- tryCatch({
     calculate_fastest_route(id)
   },
     impossible_route_error = function(e){res$status <- 400},
-    service_unavailable_error = function(e){res$status <- 503},
     gateway_timeout_error = function(e){res$status <- 504}
   )
 
   r
 }
 ```
+
+
+
+
+## Code examples {.smaller}
+
+real examples (will only work inside STAT)
+https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/summary
+
 
 ```{r echo = TRUE, eval = FALSE}
 res <- httr::GET("https://<...>/rides/12345/summary")
@@ -116,17 +176,65 @@ httr::content(res)
 ## [1] 0
 ```
 
-real examples (will only work inside STAT)
-https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/summary
-https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/map
+
+## The most important HTTP requests:
+
+* `GET`
+* `PUT`
+* `DELETE`
+* `POST`
+
+
+<div class="footer"> 
+[HTTP Methods](https://tools.ietf.org/html/rfc7231#section-4) 
+</div>
+
+
+## HTTP Status codes
+
+
+```{r echo = TRUE, eval = FALSE}
+#* @get /v1/rides/<id>/summary
+rides_summary <- function(
+  id = "",  # from the path definition above
+  res   # special plumber object: the Response
+){
+  r <- tryCatch({
+    calculate_fastest_route(id)
+  },
+    impossible_route_error = function(e){res$status <- 400},
+    gateway_timeout_error = function(e){res$status <- 504}
+  )
+  r
+}
+```
+
+* 200
+* 400 Client Error:
+* 500 Server Error:
+400 errors tell the client, that something is wrong with his request
+500 errors tell the client, that something is wrong with the server
+
+
+
+<div class="footer"> 
+[HTTP Status codes](https://tools.ietf.org/html/rfc7231#section-6)
+</div>
+
 
 ## Pitfalls of plumber
 
   * v.1.0.0 was released this year (2020) but still some rough edges
   * documentation lacking
 
-## Further reading
+## Further reading {.smaller}
 
-* plumber: https://github.com/rstudio/plumber
-* httr: https://github.com/r-lib/httr
-* HTTP Methods explained: https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+[plumber: An API Generator for R](https://www.rplumber.io/)
+
+[httr: Tools for Working with URLs and HTTP](https://github.com/r-lib/httr)
+
+[HTTP: The Protocol Every Web Developer Must Know](https://code.tutsplus.com/tutorials/http-the-protocol-every-web-developer-must-know-part-1--net-31177)
+
+[Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content](https://tools.ietf.org/html/rfc7231)
+ 
+[This presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
