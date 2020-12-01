@@ -16,9 +16,9 @@ div.footer {
   width: 80%;
   font-size: 0.6em;
 }
+
+.forceBreak { -webkit-column-break-after: always; break-after: column; }
 </style>
-
-
 
 
 ```{r setup, include=FALSE}
@@ -31,103 +31,144 @@ library(leaflet.extras)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ```
 
-## R Markdown
+
+## Travel distance from position data {.columns-2 .smaller}
 
 
+- What we need: 
+     - Total distance of the journey
+     - Transitioned countries
+     - Border crossings
+- What the mobile app provides:
+    - Geographic position every x seconds
+    - Actual frequency depends on device 
+    - Accuracy varies by device and field-conditions (e.g tunnels block the GPS signal)
 
-## The Problem:
+
+<p class="forceBreak"></p>
+
+<div class="notes">
+
+- [explain map in detail]
+  - show tunnels
+  - highlight outliers
+  - comment on temporal resolution of the position data
+  
+</div>
 
 
 ```{r}
-dd <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
-
-leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE))  %>%
+create_map <- function(x, hideGroup = "Route"){
+  leaflet::leaflet(
+    options = leaflet::leafletOptions(
+      preferCanvas = TRUE, 
+      zoomControl = FALSE
+    )
+  )  %>%
   addFullscreenControl() %>% 
   leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
-  leaflet::hideGroup("Route") %>%
+  leaflet::hideGroup(hideGroup) %>%
   leaflet::addLayersControl(
     overlayGroups = c("Route", "Punkte")
   ) %>% 
   leaflet::addCircles(
-    data = dd$points,
+    data = x$points,
     color = "crimson",
     radius = 1,
     group = "Punkte"
   ) %>%
   leaflet::addPolylines(
-    data = dd$sf, 
+    data = x$sf, 
     group = "Route"
   )
-
-
+}
 ```
+
+```{r out.width = "100%", out.height="250px"}
+x1 <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
+create_map(x1, hideGroup = "Route")
+```
+<br>
+```{r out.width = "100%", out.height="250px"}
+x2 <- readRDS(here("data/gross-enzersdorf_simmering.rds"))
+create_map(x2, hideGroup = "Route")
+```
+
+
 
 ## The solution {data-background=img/cogwheels-bg.svg data-background-size=cover}
 
-1. clean up points
-  * remove points where reported speed is less thank 7kph (walking)
-  * remove points where GPS accuracy is less than 20m
-  * remove points where calculated speed is greater than 130kph (outliers)
-2. route with routing backend where points are further than 50m apart
-3. discard unrealistic routes (speed greater 130kph)
-4. connect remaining points with straight lines
+1. Remove points where
+    - position accuracy is less than 20m
+    - reported speed is less than 7kph (walking)
+    - calculated speed is greater than 130kph (outliers)
+2. Use external routing service to connect points further than 50m apart
+3. Discard unrealistic routes (calculated speed for segment greater 130kph)
+4. Connect remaining points with straight lines
+
+<div class="footer"> 
+*reported speed*: Speed according to speed sensor of the device
+
+*calculated speed*: Speed calculated from position & timestamp
+</div>
+
+## Thank you for your attention! {.flexbox .vcenter .build}
+
+<div>The End</div><div>?</div><div>?????????????????????</div>
 
 
-## The Problem:
+## How do we integrate our R code in production?
+
+Problem: A new journey can be submitted at any time of the day and needs to 
+be processed within minutes
 
 
-```{r}
-dd <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
-
-leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE))  %>%
-  addFullscreenControl() %>% 
-  leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
-  leaflet::hideGroup("Route") %>%
-  leaflet::addLayersControl(
-    overlayGroups = c("Route", "Punkte")
-  ) %>% 
-  leaflet::addCircles(
-    data = dd$points,
-    color = "crimson",
-    radius = 1,
-    group = "Punkte"
-  ) %>%
-  leaflet::addPolylines(
-    data = dd$sf, 
-    group = "Route"
-  )
-
-
-```
+> * Manually execute the script each time we receive a new journey
+>
+> * Make an R-Script that is callable from the the command line 
+>
+>     * Pushes responsibility for maintianing the R environment to the IT department
+>     * IT Department needs to be involved for all changes to the script 
+>     * Testing the script impractical (automated tests)
+>      
+> * Set-up a web-service (with plumber)!
+>     - can be developed completely independent from the APP development team
+>     - updating and testing ist (relatively) easy
 
 
 
+## What is... {.build}
 
-## How do we 
+<div>
+- a *Web Service*: A service that runs on a server and responds to requests (usually via HTTP)
+</div>
 
-* Manually call the script each time we receive a new router?
-  - impractical
-* Call an R script from the command line
-  - 
-* Use a web-service!
+<div>
+- *HTTP*: A protocol for computers to communicate with each other
+</div>
 
+<div>
+- an *API*: Application Programming Interface: A part of a program that enables it to
+    communicate with other programs
+</div>
 
-## What is a Web Service?
-
-* A service that runs on a server and responds to requests
-* Makes it possible 
-
-```
-
-client <-HTTP-> server
-
-```
+<div>
+-  REST: Representational state transfer: An architecture standard for web services
+</div>
 
 
-## What is a RESTful API
 
-* API: Application Interface (as upposed to User Interface)
-* REST: Representational state transfer (REST) is Standard for creating webservices.
+## Architecture {.columns-2 .smaller}
+
+* Mobile-App communicates with Backend
+* Backend communicates with geoprocessing service
+* Geoprocessing service communicates with external routing service
+
+Each component can easily be replaced as long as the API stays stable!
+
+<p class="forceBreak"></p>
+
+<center><img src="img/mobile-app-architecture-2.svg"></center>
 
 
 ## How is it useful?
@@ -155,6 +196,12 @@ rides_summary <- function(
   r
 }
 ```
+
+## Advantages
+
+- Code 
+- API is universal: Client and Server code can bei maintained and modified
+independent of each other
 
 
 
@@ -236,5 +283,11 @@ rides_summary <- function(
 [HTTP: The Protocol Every Web Developer Must Know](https://code.tutsplus.com/tutorials/http-the-protocol-every-web-developer-must-know-part-1--net-31177)
 
 [Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content](https://tools.ietf.org/html/rfc7231)
+
+The Austrian Road Freight Transport Mobile App
+[video](https://www.youtube.com/watch?v=_RpJUSiBZaI&feature=youtu.be) or
+[brochure](https://www.statistik.at/wcm/idc/idcplg?IdcService=GET_PDF_FILE&dDocName=122327) [in German]
+
  
 [This presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
+
