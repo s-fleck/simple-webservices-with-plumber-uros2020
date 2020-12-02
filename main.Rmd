@@ -30,47 +30,41 @@ library(leaflet.extras)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ```
+## Outline
 
+1. Processing location data
+2. Why a web service?
+3. Architecture and Code examples
+4. Conclusion
+
+
+
+# Geoprocessing
 
 ## Travel distance from position data {.columns-2 .smaller}
 
+- The app provides:
+    - Geo-position every x seconds (varies by device)
+    - Positional accuracy
+    - Speed
 
-- What we need: 
-     - Total distance of the journey
-     - Transitioned countries
-     - Border crossings
-- What the mobile app provides:
-    - Geographic position every x seconds
-    - Actual frequency depends on device 
-    - Accuracy varies by device and field-conditions (e.g tunnels block the GPS signal)
-
+- Quality of data varies (gaps, outliers)
+- Pre-processing necessary
+- Imputation of gaps necessary (via routing)
 
 <p class="forceBreak"></p>
 
-<div class="notes">
-
-- [explain map in detail]
-  - show tunnels
-  - highlight outliers
-  - comment on temporal resolution of the position data
-  
-</div>
-
-
 ```{r}
-create_map <- function(x, hideGroup = "Route"){
+create_map <- function(x, hideGroup = "Route", attributionControl = FALSE){
   leaflet::leaflet(
     options = leaflet::leafletOptions(
       preferCanvas = TRUE, 
-      zoomControl = FALSE
+      zoomControl = FALSE,
+      attributionControl=attributionControl
     )
   )  %>%
-  addFullscreenControl() %>% 
   leaflet::addProviderTiles(provider = "CartoDB.Positron") %>%
   leaflet::hideGroup(hideGroup) %>%
-  leaflet::addLayersControl(
-    overlayGroups = c("Route", "Punkte")
-  ) %>% 
   leaflet::addCircles(
     data = x$points,
     color = "crimson",
@@ -84,27 +78,30 @@ create_map <- function(x, hideGroup = "Route"){
 }
 ```
 
-```{r out.width = "100%", out.height="250px"}
+Outliers
+```{r out.width = "100%", out.height="200px"}
 x1 <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
-create_map(x1, hideGroup = "Route")
+create_map(x1, hideGroup = "Route") %>% 
+  leaflet::setView(15.28,  47.407, 14) %>% 
+  leaflet.extras::addFullscreenControl()
 ```
-<br>
-```{r out.width = "100%", out.height="250px"}
+
+Gaps
+```{r out.width = "100%", out.height="200px"}
 x2 <- readRDS(here("data/gross-enzersdorf_simmering.rds"))
-create_map(x2, hideGroup = "Route")
+create_map(x2, hideGroup = "Route", attributionControl = TRUE)
 ```
 
 
-
-## The solution {data-background=img/cogwheels-bg.svg data-background-size=cover}
+## Travel distance from position data II {data-background=img/cogwheels-bg.svg data-background-size=cover}
 
 1. Remove points where
     - position accuracy is less than 20m
     - reported speed is less than 7kph (walking)
     - calculated speed is greater than 130kph (outliers)
-2. Use external routing service to connect points further than 50m apart
-3. Discard unrealistic routes (calculated speed for segment greater 130kph)
-4. Connect remaining points with straight lines
+2. Connect points that are close together with straight lines
+3. Use external routing service to connect points further than 50m apart
+
 
 <div class="footer"> 
 *reported speed*: Speed according to speed sensor of the device
@@ -112,10 +109,8 @@ create_map(x2, hideGroup = "Route")
 *calculated speed*: Speed calculated from position & timestamp
 </div>
 
-## Thank you for your attention! {.flexbox .vcenter .build}
 
-<div>The End</div><div>?</div><div>?????????????????????</div>
-
+# Why a web service
 
 ## How do we integrate our R code in production?
 
@@ -129,51 +124,38 @@ be processed within minutes
 >
 >     * Pushes responsibility for maintianing the R environment to the IT department
 >     * IT Department needs to be involved for all changes to the script 
->     * Testing the script impractical (automated tests)
 >      
 > * Set-up a web-service (with plumber)!
 >     - can be developed completely independent from the APP development team
 >     - updating and testing ist (relatively) easy
 
+# Architecture & Code examples
 
+## Architecture
+<div class = "columns-2" style="font-size:20px">
 
-## What is... {.build}
+  * Mobile-App communicates with Backend
+  * Backend communicates with geoprocessing service
+  * Geoprocessing service communicates with external routing service
+  
+  Each component can easily be replaced as long as the API stays stable!
+  
+  <p class="forceBreak"></p>
+  
+  <center><img src="img/mobile-app-architecture-2.svg"></center>
 
-<div>
-- a *Web Service*: A service that runs on a server and responds to requests (usually via HTTP)
 </div>
 
-<div>
-- *HTTP*: A protocol for computers to communicate with each other
-</div>
-
-<div>
-- an *API*: Application Programming Interface: A part of a program that enables it to
-    communicate with other programs
-</div>
-
-<div>
--  REST: Representational state transfer: An architecture standard for web services
+<div class="footer" style = "width:50%"> 
+*Web Service*: A service that runs on a server and responds to requests (usually via HTTP) 
+*HTTP*: A protocol for computers to communicate with each other
+  
+*API*: Application Programming Interface: A part of a program that enables it to communicate with other programs
 </div>
 
 
 
-## Architecture {.columns-2 .smaller}
-
-* Mobile-App communicates with Backend
-* Backend communicates with geoprocessing service
-* Geoprocessing service communicates with external routing service
-
-Each component can easily be replaced as long as the API stays stable!
-
-<p class="forceBreak"></p>
-
-<center><img src="img/mobile-app-architecture-2.svg"></center>
-
-
-## How is it useful?
-
-## Code examples {.smaller}
+## Server code {.smaller}
 
 ```{r echo = TRUE, eval = FALSE}
 #* Calculate the fastest route 
@@ -197,16 +179,12 @@ rides_summary <- function(
 }
 ```
 
-## Advantages
 
-- Code 
-- API is universal: Client and Server code can bei maintained and modified
-independent of each other
+<div class="footer" style = "width:50%"> 
+<span style="font-size:0.6em">[HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)</span>
+</div>
 
-
-
-
-## Code examples {.smaller}
+## Client code {.smaller}
 
 real examples (will only work inside STAT)
 https://rsconnect.statistik.local/sgvkappd/v1/rides/ex5/summary
@@ -224,55 +202,8 @@ httr::content(res)
 ```
 
 
-## The most important HTTP requests:
+# Conclusion
 
-* `GET`
-* `PUT`
-* `DELETE`
-* `POST`
-
-
-<div class="footer"> 
-[HTTP Methods](https://tools.ietf.org/html/rfc7231#section-4) 
-</div>
-
-
-## HTTP Status codes
-
-
-```{r echo = TRUE, eval = FALSE}
-#* @get /v1/rides/<id>/summary
-rides_summary <- function(
-  id = "",  # from the path definition above
-  res   # special plumber object: the Response
-){
-  r <- tryCatch({
-    calculate_fastest_route(id)
-  },
-    impossible_route_error = function(e){res$status <- 400},
-    gateway_timeout_error = function(e){res$status <- 504}
-  )
-  r
-}
-```
-
-* 200
-* 400 Client Error:
-* 500 Server Error:
-400 errors tell the client, that something is wrong with his request
-500 errors tell the client, that something is wrong with the server
-
-
-
-<div class="footer"> 
-[HTTP Status codes](https://tools.ietf.org/html/rfc7231#section-6)
-</div>
-
-
-## Pitfalls of plumber
-
-  * v.1.0.0 was released this year (2020) but still some rough edges
-  * documentation lacking
 
 ## Further reading {.smaller}
 
@@ -290,4 +221,13 @@ The Austrian Road Freight Transport Mobile App
 
  
 [This presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
+
+
+### Contact
+
+
+[stefan.fleck@statistik.gv.at](mailto:stefan.fleck@statistik.gv.at)
+
+[https://github.com/s-fleck](https://github.com/s-fleck)
+
 
