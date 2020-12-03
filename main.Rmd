@@ -1,5 +1,5 @@
 ---
-title: "Simple Webservices with Plumber"
+title: "A Web Service for Processing Location Data from Mobile Phones"
 author: "Stefan Fleck"
 date: "11/19/2020"
 output: ioslides_presentation
@@ -15,6 +15,10 @@ div.footer {
   margin-bottom: 10px;
   width: 80%;
   font-size: 0.6em;
+}
+
+slides > slide.title-slide hgroup h1 {
+  font-size: 36pt;
 }
 
 .forceBreak { -webkit-column-break-after: always; break-after: column; }
@@ -33,23 +37,24 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 ## Outline
 
 1. Processing location data
-2. Why a web service?
-3. Architecture and Code examples
+2. Web services with R
+3. Architecture and code examples
 4. Conclusion
 
+<div class="footer">
+<img src="img/outline.svg" width=100%>
+</div>
 
-
-# Geoprocessing
 
 ## Travel distance from position data {.columns-2 .smaller}
 
 - The app provides:
-    - Geo-position every x seconds (varies by device)
+    - Geo-position every *x* seconds (varies by device)
     - Positional accuracy
     - Speed
 
 - Quality of data varies (gaps, outliers)
-- Pre-processing necessary
+- Outlier-cleanup necessary
 - Imputation of gaps necessary (via routing)
 
 <p class="forceBreak"></p>
@@ -78,7 +83,7 @@ create_map <- function(x, hideGroup = "Route", attributionControl = FALSE){
 }
 ```
 
-Outliers
+<span style="font-size: small">Outliers</span>
 ```{r out.width = "100%", out.height="200px"}
 x1 <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
 create_map(x1, hideGroup = "Route") %>% 
@@ -86,7 +91,7 @@ create_map(x1, hideGroup = "Route") %>%
   leaflet.extras::addFullscreenControl()
 ```
 
-Gaps
+<span style="font-size: small">Gaps</span>
 ```{r out.width = "100%", out.height="200px"}
 x2 <- readRDS(here("data/gross-enzersdorf_simmering.rds"))
 create_map(x2, hideGroup = "Route", attributionControl = TRUE)
@@ -102,7 +107,6 @@ create_map(x2, hideGroup = "Route", attributionControl = TRUE)
 2. Connect points that are close together with straight lines
 3. Use external routing service to connect points further than 50m apart
 
-
 <div class="footer"> 
 *reported speed*: Speed according to speed sensor of the device
 
@@ -110,47 +114,52 @@ create_map(x2, hideGroup = "Route", attributionControl = TRUE)
 </div>
 
 
-# Why a web service
-
 ## How do we integrate our R code in production?
 
 Problem: A new journey can be submitted at any time of the day and needs to 
 be processed within minutes
 
 
-> * Manually execute the script each time we receive a new journey
+> * 🐒 Manually execute the script each time we receive a new journey
 >
-> * Make an R-Script that is callable from the the command line 
+> * 👨 Write an R-Script that is callable from the the command line 
 >
->     * Pushes responsibility for maintianing the R environment to the IT department
->     * IT Department needs to be involved for all changes to the script 
+>     * Makes it hard to ensure a stable R environment
+>     * Maintenance of the script involves another party
 >      
-> * Set-up a web-service (with plumber)!
->     - can be developed completely independent from the APP development team
->     - updating and testing ist (relatively) easy
+> * 🚀 Turn your R-code into a web-service!
 
-# Architecture & Code examples
+
+## Advantages of web services
+
+* Clear separation of concerns ("good fences make good neighbors")
+* Virtually all programming languages can use HTTP APIs
+* Execution environment can be tightly controlled
+* Easy to deploy different version of the service (dev, test, prod)
+* A service is reusable and not limited to a single project
+* (for our project) We could re-use existing code from a different project
+
+<div class="footer" style = "width:50%"> 
+*Web Service*: A service that runs on a server and responds to requests (usually via HTTP) 
+
+*HTTP*: A protocol for computers to communicate with each other
+
+*API*: Application Programming Interface: A part of a program that enables it to communicate with other programs
+</div>
+
+
 
 ## Architecture
 <div class = "columns-2" style="font-size:20px">
-
-  * Mobile-App communicates with Backend
+  * Mobile-App communicates with backend
   * Backend communicates with geoprocessing service
   * Geoprocessing service communicates with external routing service
   
-  Each component can easily be replaced as long as the API stays stable!
+  Each component can easily be replaced as long as its API stays stable!
   
   <p class="forceBreak"></p>
   
   <center><img src="img/mobile-app-architecture-2.svg"></center>
-
-</div>
-
-<div class="footer" style = "width:50%"> 
-*Web Service*: A service that runs on a server and responds to requests (usually via HTTP) 
-*HTTP*: A protocol for computers to communicate with each other
-  
-*API*: Application Programming Interface: A part of a program that enables it to communicate with other programs
 </div>
 
 
@@ -163,7 +172,9 @@ be processed within minutes
 #* @response 400 Impossible Route Rrror: routing not possible (e.g. Islands)
 #* @response 504 Gateway Timeout Error: routing backend may be down.
 #*
+### <b>
 #* @get /v1/rides/<id>/summary
+### </b>
 rides_summary <- function(
   id = "",  # from the path definition above
   res   # special plumber object: the Response
@@ -179,13 +190,12 @@ rides_summary <- function(
 }
 ```
 
-
 <div class="footer" style = "width:50%"> 
 <span style="font-size:0.6em">[HTTP status codes](https://tools.ietf.org/html/rfc7231#section-6)</span>
 </div>
 
-## Client code {.smaller}
 
+## Client code {.smaller}
 
 Sending a GET request from R
 ```{r echo = TRUE, eval = FALSE}
@@ -206,7 +216,42 @@ curl https://<...>/rides/12345/summary
 
 <center><img src="img/client-server.svg"></center>
 
-# Conclusion
+
+## API Documentation 
+
+<center><img src="img/swagger.png"></center>
+
+<div class="footer" style = "width:50%"> 
+[HTTP request methods](https://tools.ietf.org/html/rfc7231#section-4)
+
+[OpenAPI specification](https://swagger.io/specification/)
+</div>
+
+
+## Conclusion {.build}
+
+<div>
+* HTTP APIs are a powerful tool for patching applications together
+* Providing services with well-behaved APIs is a great way for different teams 
+  to collaborate on complex IT projects
+* The **plumber** package makes it easy to create HTTP APIs for your project
+* The **httr** package makes it easy to access HTTP APIs
+* Use APIs!
+</div>
+
+<div>
+<br><br><br>
+<table style="border-spacing: 50px;">
+<tr>
+  <td width = 10%>
+    <img src="img/Amazon-CEO-Jeff-Bezos-Speaks-At-Air-Force-Association-Air-Space-Cyber-Conf-5.jpg" height = "100px">
+  </td>
+  <td width = 90% style="font-size:1em; text-align:right;">
+    <span>*["Anyone who doesn’t do this will be fired. Thank you; have a nice day!"](https://api-university.com/blog/the-api-mandate/)* <br> -- Jeff Bezos</span>
+  </td>
+</tr>
+</table>
+</div>
 
 
 ## Further reading {.smaller}
@@ -219,16 +264,15 @@ curl https://<...>/rides/12345/summary
 
 [Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content](https://tools.ietf.org/html/rfc7231)
 
+[What is REST](https://restfulapi.net/)
+
 The Austrian Road Freight Transport Mobile App
 [video](https://www.youtube.com/watch?v=_RpJUSiBZaI&feature=youtu.be) or
 [brochure](https://www.statistik.at/wcm/idc/idcplg?IdcService=GET_PDF_FILE&dDocName=122327) [in German]
 
- 
 [This presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
 
-
 ### Contact
-
 
 [stefan.fleck@statistik.gv.at](mailto:stefan.fleck@statistik.gv.at)
 

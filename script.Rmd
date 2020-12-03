@@ -10,7 +10,7 @@ output: html_document
 Hello my name is Stefan Fleck and I work for the transport  unit
 at statistics austria. In 2019 we developed a mobile app for the road freight
 transport survey as an alternative to the traditional questionnaire.
-The app can automatically fill in some of the data we need by analyzing the
+The app can automatically fills in some of the data we need by analyzing the
 geo-locations recorded by the mobile device, thus leaving fewer questions for
 the respondent to answer and saving them valuable time. 
 
@@ -51,14 +51,16 @@ In the end we came up with the following algorithm for processing our data.
 First we remove points where the positional accuracy reported by the
 mobile phone is less than 20 meters. Then we remove points where the speed of
 the vehicle is less than 7 kilometers per hour. We do this to remove things like
-rest breaks from the joruney, where the driver left his vehicle but did notd
+rest breaks, where the driver left his vehicle but did notd
 deactive the app.
 We also remove points where the speed is greater than 130 kilometers per hour.
 This has prooven very effective at removing outliers
 
 We then connect the remaining points with straight lines if they are close
 together, or use an external routing service to connect points that are further
-than 50 meters apart. This algorithm produces very good results for most of the
+than 50 meters apart. 
+
+This algorithm produces very good results for most of the
 journeys that we receive from the mobile app users, however, our work is far
 from done. The question that we have to answer now, is
 
@@ -71,16 +73,105 @@ within a few minutes.
 
 A feasible approach would be making an R script that is callable from the
 command line and deploying it to the machine where the backend of the mobile
-up runs. This has several disadvantages. It pushes the responsibility for
+app runs. This has several disadvantages. It pushes the responsibility for
 maintaining the R environment to the team that developed the mobile app 
 and makes the whole setup for the backend more complicated and interlinked.
 This also means that the app team would always need to be involved if the
 modifications to the script become necessary. 
 
-The solution we chose was setting up a stand-alone web-service that is isolated 
-from the mobile app and its backend. This way the development and maintenance
-of the geoprocessing service is indipendent from the development cycles of the 
-moible app, and updating and testing the R code is pretty simple.
+Alternatively, we could turn our R code into a web service and avoid most of these
+pitfalls!
 
 
-##
+## Advantages of using a web service
+
+* By defining an API i can clearly formalize the boundaries between two components
+  of system, for example in our case the geoprocessing service and the mobile app.
+  This  often corrsepond to borders between teams as in our case
+  where the IT unit maintains the mobile app and we the geoprocessing
+  service.
+* HTTP has been around for a long time, is well standardized and so practically
+  all programming languages can use HTTP APIs.
+*  Since the web service
+  runs on a dedicated machine, I can control the R version, operating system,
+  R packages, system libraries, etc to use. 
+* I can easily deploy different version of the service, for example development,
+  testing and production stages.
+* The service is reusable from other projects. For example, I have also
+  created a small shiny app that uses the same API to enable our staff to
+  view all routes submitted with the mobile app.
+  
+  (6:20)
+
+
+## Architecture of the 
+
+Now lets look at the system from an architecture p[oint of few. We have several
+different pieces of software that need to communicate with each other.
+
+* On the right you see the different components of our system.
+
+* The mobile app needs to query and submit data from the backend. It
+  does this via an HTTP API.
+
+* On the bottom we have the routing service that we use to impute gaps in
+  the location data. This one also uses an HTTP API
+
+* our geoprocessing service communicate with an external routing service
+via an HTTP API
+
+* So it's pretty straight forward that we also choose an HTTP API to expose
+our R-based service.
+
+* Each component of the system is self sufficient. We could reimplement
+the geoprocessing service in a different programming lanague without
+any downstream problems for mobile-app. 
+
+
+## server code
+
+Here is a code example for how to define the server side code with plumber.
+We define a normal R function that we augment wit special comments that
+are then turned into an API specification by plumber. This part here
+defines the so called endpoint of our api. The id gets passed to our
+R function as a variable. Plumber also passes a special "Response" object
+named "res" into the function that we can manipulate. This is purely
+optional, but in this case we use it to return the proper HTTP error
+codes if we encounter a problem. If you want to learn more about HTTP 
+status codes, please refer to that link down here.
+
+
+## client code
+
+Accessing the api defined on the slide before is really easy. You can do it
+from R or from the command line, or from practically any other programming
+language. In R we can use the httr library to send HTTP requests. httr
+is pretty smart and already parses the response for us if it comes in a format
+that it can understand, like JSON or XML. 
+
+
+## Api Documentation
+
+* Usually an API has several endpoints. This is a partial overview of the
+  endpoints our geoprocessing API provides. Note that there are more types
+  of requests, not just GET request that you can send over HTTP. For example,
+  you can also send DELETE requests to indicate a resource should be deleted.
+  If you implement an API it is very important to understand the semantics
+  of different HTTP methods, and use them appropriately. Otherwise your
+  API will be a mess and hard to use for other people. Please refer to the
+  link here for a detailed description of HTTP methods.
+* Plumber automatically generates a documentation for your API. For this it
+  turns special code comments into an OpenAPI compatible API specification.
+* Sadly this is still not very feature-complete, and it is not yet possible to
+  properly document important things like return values. This is for me one of 
+  the major flaws in plumber, but If you really want you can manually write
+  the OpenAPI specification in YAML or JSON and serve it via plumber.
+
+## Conclusion
+
+* HTTP APIs are a powerful tool to patch together different computer programs
+* Providing services with well-behaved APIs is a great way for different teams 
+  to colaborate in complex IT projects
+* The plumber package makes it easy to 
+* the httr packages makes it very easy access HTTP APIs
+
