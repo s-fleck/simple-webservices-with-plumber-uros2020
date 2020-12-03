@@ -7,23 +7,29 @@ output: html_document
 
 ## Intro
 
-Hello my name is Stefan Fleck and I work for the transport  unit
-at statistics austria. In 2019 we developed a mobile app for the road freight
+Hello, my name is Stefan Fleck and I work for the Transport Unit
+at Statistics Austria. 
+
+In 2019 we developed a mobile app for the road freight
 transport survey as an alternative to the traditional questionnaire.
-The app can automatically fills in some of the data we need by analyzing the
+
+The app can automatically fill-in some of the data we need by analyzing the
 geo-locations recorded by the mobile device, thus leaving fewer questions for
 the respondent to answer and saving them valuable time. 
 
-This talk is about how and why we implemented the processing of the location data
+This talk is about how, and why, we implemented the processing of the location data
 in R and set up a web service to make this functionality available to the
 backend of the mobile app.
 
 ## TOC
 
-1. i will start by discussing how we solved the problem of deriving travel distance from position data.
-2. next i will explain why we decided to choose a web service for deploying our code 
-3. and then I will describe the actual service we implented
-4. Finally a I will close the presentation with a conclusion and recommend
+1. I will start by discussing how we solved the problem of deriving travel distance from position data.
+
+2. Next I will explain why we decided to choose a web-service for deploying our code 
+
+3. And then, I will describe the actual service we implemented
+
+4. Finally, I will close the presentation with a conclusion and recommend
   some additional reading if you want to deepen your understanding of web
   services.
 
@@ -34,53 +40,79 @@ I am happy to Answer questions afterwards.
 ## 1.3
 
 For the statistics we publish we need to know the total distance of each journey
-and potentially all transitioned countries and border crossings. This can
-be derived from location data, but its not completely straight forward.
+and potentially all transitioned countries and border crossings. 
+
+This can be derived from location data, but its not completely straight forward.
 
 The mobile app records the global position of the device as latitude and 
-longitude. Usually we get one such geo-position every few seconds, depending on
-the device. As you can see on the maps, the data is not always perfect and
-there are outliers that we have to remove and gaps that we have to close.
-These gaps can be large for phones with aggressive power saving settings and
+longitude. 
+
+Usually we get one such geo-position every few seconds, depending on
+the device. 
+
+As you can see on the maps, the data is not always perfect and
+there are 
+  - *outliers* that we have to *remove* and 
+  - *gaps* that we have to *close*.
+  
+These *gaps* can be especially large for phones with *aggressive power saving* settings and
 sometimes we only get a few points towards the beginning and end of a journey.
 
 
 ##
 
 In the end we came up with the following algorithm for processing our data.
-First we remove points where the positional accuracy reported by the
-mobile phone is less than 20 meters. Then we remove points where the speed of
-the vehicle is less than 7 kilometers per hour. We do this to remove things like
-rest breaks, where the driver left his vehicle but did notd
-deactive the app.
-We also remove points where the speed is greater than 130 kilometers per hour.
-This has prooven very effective at removing outliers
 
-We then connect the remaining points with straight lines if they are close
-together, or use an external routing service to connect points that are further
-than 50 meters apart. 
+First we *remove points* where the positional accuracy reported by the
+mobile phone is *less than 20 meters*. 
 
-This algorithm produces very good results for most of the
-journeys that we receive from the mobile app users, however, our work is far
-from done. The question that we have to answer now, is
+Then we *remove points* where the speed of the vehicle is 
+*less than 7 kilometers per hour*. 
+
+We do this to account for things like *rest breaks*, where the driver left his
+vehicle but did not deactivate the app.
+
+We also *remove points* where the speed is *greater than 130 kilometers per hour*.
+This has proven very effective at removing *outliers*
+
+We then *connect* the remaining points with *straight lines if they are close*
+together, or use an *external routing service* to connect points that are *further than 50 meters apart.*
+
+This algorithm produces *very good results* for most of the
+journeys that we receive, however, our work does not stop with coming up with
+the business logic for solving the problem. 
+
+Now we have to think about how...
 
 (3:20)
 ##
 
-how can we deploy the algorithm in a production environment? Note that new
-journeys can arrive at any time during the day and should be processed
-within a few minutes. 
+...we *deploy the solution* in a production environment? 
 
-A feasible approach would be making an R script that is callable from the
-command line and deploying it to the machine where the backend of the mobile
-app runs. This has several disadvantages. It pushes the responsibility for
-maintaining the R environment to the team that developed the mobile app 
-and makes the whole setup for the backend more complicated and interlinked.
-This also means that the app team would always need to be involved if the
-modifications to the script become necessary. 
+Note that *new journeys can arrive at any time* during the day and should 
+be processed within a few minutes. 
 
-Alternatively, we could turn our R code into a web service and avoid most of these
-pitfalls!
+Manually running an R script any time a new journey arrives is therefore not
+feasible.
+
+A better approach would be making an R script that is *callable from the command line* 
+and deploying it to the machine where the *backend of the mobile app* runs.
+The backend could then execute the script whenever it needed to process
+a journey.
+
+This has several disadvantages. 
+
+First, It pushes the responsibility for maintaining the *R environment* to the 
+team that developed the mobile app, rather than the developer of the R code.
+
+It would also make the *setup of the backend* more *complicated* and therefore
+add more potential failure points.
+
+In addition, this also means that the app team would always need to be involved if the
+*modifications* to the script become necessary. 
+
+Alternatively, we could turn our R code into a *web service* and avoid most of 
+these pitfalls!
 
 
 ## Advantages of using a web service
