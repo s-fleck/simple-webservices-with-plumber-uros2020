@@ -82,7 +82,7 @@ create_map <- function(x, hideGroup = "Route", attributionControl = FALSE){
   )
 }
 ```
-
+<div>
 <span style="font-size: small">Outliers</span>
 ```{r out.width = "100%", out.height="200px"}
 x1 <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
@@ -90,13 +90,14 @@ create_map(x1, hideGroup = "Route") %>%
   leaflet::setView(15.28,  47.407, 14) %>% 
   leaflet.extras::addFullscreenControl()
 ```
-
+</div>
+<div>
 <span style="font-size: small">Gaps</span>
 ```{r out.width = "100%", out.height="200px"}
 x2 <- readRDS(here("data/gross-enzersdorf_simmering.rds"))
 create_map(x2, hideGroup = "Route", attributionControl = TRUE)
 ```
-
+</div>
 
 ## Travel distance from position data II {data-background=img/cogwheels-bg.svg data-background-size=cover}
 
