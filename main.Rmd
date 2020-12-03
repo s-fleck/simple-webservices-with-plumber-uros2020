@@ -17,6 +17,10 @@ div.footer {
   font-size: 0.6em;
 }
 
+.caption {
+  font-size: .8rem
+}
+
 slides > slide.title-slide hgroup h1 {
   font-size: 36pt;
 }
@@ -46,17 +50,17 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 </div>
 
 
-## Travel distance from position data {.columns-2 .smaller}
+## Travel distance from position data {.columns-2}
 
-- The app provides:
+- The mobile phone records:
     - Geo-position every *x* seconds (varies by device)
     - Positional accuracy
     - Speed
 
-- Quality of data varies (gaps, outliers)
 - Outlier-cleanup necessary
 - Imputation of gaps necessary (via routing)
 
+<p class="forceBreak"></p>
 <p class="forceBreak"></p>
 
 ```{r}
@@ -82,22 +86,19 @@ create_map <- function(x, hideGroup = "Route", attributionControl = FALSE){
   )
 }
 ```
-<div>
-<span style="font-size: small">Outliers</span>
-```{r out.width = "100%", out.height="200px"}
+
+```{r out.width = "100%", out.height="200px", fig.cap="Outliers"}
 x1 <- readRDS(here("data/brunn-am-gebirge_klagenfurt-am-woerthersee.rds"))
 create_map(x1, hideGroup = "Route") %>% 
   leaflet::setView(15.28,  47.407, 14) %>% 
   leaflet.extras::addFullscreenControl()
 ```
-</div>
-<div>
-<span style="font-size: small">Gaps</span>
-```{r out.width = "100%", out.height="200px"}
+
+```{r out.width = "100%", out.height="200px", fig.cap="Gaps"}
 x2 <- readRDS(here("data/gross-enzersdorf_simmering.rds"))
 create_map(x2, hideGroup = "Route", attributionControl = TRUE)
 ```
-</div>
+
 
 ## Travel distance from position data II {data-background=img/cogwheels-bg.svg data-background-size=cover}
 
@@ -123,7 +124,7 @@ be processed within minutes
 
 > * 🐒 Manually execute the script each time we receive a new journey
 >
-> * 👨 Write an R-Script that is callable from the the command line 
+> * 🧑 Write an R-Script that is callable from the the command line 
 >
 >     * Makes it hard to ensure a stable R environment
 >     * Maintenance of the script involves another party
@@ -151,7 +152,7 @@ be processed within minutes
 
 
 ## Architecture
-<div class = "columns-2" style="font-size:20px">
+<div class = "columns-2">
   * Mobile-App communicates with backend
   * Backend communicates with geoprocessing service
   * Geoprocessing service communicates with external routing service
@@ -160,7 +161,7 @@ be processed within minutes
   
   <p class="forceBreak"></p>
   
-  <center><img src="img/mobile-app-architecture-2.svg"></center>
+  <center><img src="img/mobile-app-architecture-2.svg" height="150%"></center>
 </div>
 
 
@@ -267,11 +268,11 @@ curl https://<...>/rides/12345/summary
 
 [What is REST](https://restfulapi.net/)
 
-The Austrian Road Freight Transport Mobile App
-[video](https://www.youtube.com/watch?v=_RpJUSiBZaI&feature=youtu.be) or
-[brochure](https://www.statistik.at/wcm/idc/idcplg?IdcService=GET_PDF_FILE&dDocName=122327) [in German]
+The Austrian Road Freight Transport Mobile App - 
+[Video](https://www.youtube.com/watch?v=_RpJUSiBZaI&feature=youtu.be) or
+[Brochure](https://www.statistik.at/wcm/idc/idcplg?IdcService=GET_PDF_FILE&dDocName=122327) [in German]
 
-[This presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
+[This Presentation](https://github.com/s-fleck/simple-webservices-with-plumber-uros2020)
 
 ### Contact
 
