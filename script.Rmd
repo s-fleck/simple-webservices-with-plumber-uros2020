@@ -5,9 +5,10 @@ date: "12/1/2020"
 output: html_document
 ---
 
+
 ## Intro
 
-Hello, my name is Stefan Fleck and I work for the Transport Unit
+Hello, my name is Stefan and I work for the Transport Unit
 at Statistics Austria. 
 
 In 2019 we developed a mobile app for the road freight
@@ -27,13 +28,14 @@ backend of the mobile app.
 
 2. Next I will explain why we decided to choose a web-service for deploying our code 
 
-3. And then, I will describe the actual service we implemented
+3. And then, I will describe the actual service we implemented with the help of the plumber package
 
 4. Finally, I will close the presentation with a conclusion and recommend
   some additional reading if you want to deepen your understanding of web
   services.
 
-As this talk is rather short, I can only skim the topics listed above, but
+As this talk is rather short and aimed at people who have not used 
+plumber before. I can only skim the topics listed above, but
 I am happy to Answer questions afterwards.
 
  (1:20)
@@ -118,27 +120,31 @@ these pitfalls!
 ## Advantages of using a web service
 
 * By defining an API i can clearly formalize the boundaries between two components
-  of system, for example in our case the geoprocessing service and the mobile app.
-  This  often corrsepond to borders between teams as in our case
-  where the IT unit maintains the mobile app and we the geoprocessing
+  of system.
+  
+  This  often corrsepond to borders between teams, for example in our case
+  where the IT unit maintains the mobile app and its backend, while we maintain the geoprocessing
   service.
-* HTTP has been around for a long time, is well standardized and so practically
+* HTTP - the protocol over which we communicate with the web services - has been around for a long time, is well standardized and so practically
   all programming languages can use HTTP APIs.
-*  Since the web service
-  runs on a dedicated machine, I can control the R version, operating system,
-  R packages, system libraries, etc to use. 
-* I can easily deploy different version of the service, for example development,
-  testing and production stages.
+  
+*  Since the web service runs on a dedicated machine, I have total control over the
+  the R execution environment, that means  the R version, operating system,
+  R packages, system libraries, etc. 
+  
+* I can easily deploy different version of the service, for example a separate development,
+  testing and production stage.
+  
 * The service is reusable from other projects. For example, I have also
   created a small shiny app that uses the same API to enable our staff to
-  view all routes submitted with the mobile app.
+  review the routes submitted with the mobile app.
   
   (6:20)
 
 
-## Architecture of the 
+## Architecture 
 
-Now lets look at the system from an architecture p[oint of few. We have several
+Now lets look at the system from an architecture point of view. We have several
 different pieces of software that need to communicate with each other.
 
 * On the right you see the different components of our system.
@@ -149,10 +155,7 @@ different pieces of software that need to communicate with each other.
 * On the bottom we have the routing service that we use to impute gaps in
   the location data. This one also uses an HTTP API
 
-* our geoprocessing service communicate with an external routing service
-via an HTTP API
-
-* So it's pretty straight forward that we also choose an HTTP API to expose
+* So it is only logical that we also choose an HTTP API to expose
 our R-based service.
 
 * Each component of the system is self sufficient. We could reimplement
@@ -162,38 +165,55 @@ any downstream problems for mobile-app.
 
 ## server code
 
-Here is a code example for how to define the server side code with plumber.
-We define a normal R function that we augment wit special comments that
-are then turned into an API specification by plumber. This part here
-defines the so called endpoint of our api. The id gets passed to our
-R function as a variable. Plumber also passes a special "Response" object
-named "res" into the function that we can manipulate. This is purely
-optional, but in this case we use it to return the proper HTTP error
-codes if we encounter a problem. If you want to learn more about HTTP 
+Here is a code example for server side code with plumber.
+
+We define a normal R function that we *augment* wit special comments that
+are then turned into an API specification by plumber. 
+
+This part here defines the so called *endpoint* of our api. 
+
+The *id* gets passed to our R function as a *variable*. 
+
+Plumber also passes a special *Response* object
+named "res" into the function that we can manipulate. 
+
+In this example we manipulate the object to return the *proper HTTP error*
+codes if we encounter a problem. 
+
+If you want to learn more about HTTP 
 status codes, please refer to that link down here.
 
 
 ## client code
 
 Accessing the api defined on the slide before is really easy. You can do it
-from R or from the command line, or from practically any other programming
-language. In R we can use the httr library to send HTTP requests. httr
+from R or from the command line (with curl), or from practically any other programming
+language. 
+
+In R we can use the httr library to send HTTP requests. httr
 is pretty smart and already parses the response for us if it comes in a format
 that it can understand, like JSON or XML. 
+
 
 
 ## Api Documentation
 
 * Usually an API has several endpoints. This is a partial overview of the
-  endpoints our geoprocessing API provides. Note that there are more types
+  endpoints our geoprocessing API provides. 
+  
+  Note that there are more types
   of requests, not just GET request that you can send over HTTP. For example,
   you can also send DELETE requests to indicate a resource should be deleted.
+  
   If you implement an API it is very important to understand the semantics
   of different HTTP methods, and use them appropriately. Otherwise your
-  API will be a mess and hard to use for other people. Please refer to the
-  link here for a detailed description of HTTP methods.
+  API will be a mess and hard to use for other people. 
+  
+  Please refer to the link here for a detailed description of HTTP methods.
+  
 * Plumber automatically generates a documentation for your API. For this it
   turns special code comments into an OpenAPI compatible API specification.
+  
 * Sadly this is still not very feature-complete, and it is not yet possible to
   properly document important things like return values. This is for me one of 
   the major flaws in plumber, but If you really want you can manually write
@@ -204,6 +224,12 @@ that it can understand, like JSON or XML.
 * HTTP APIs are a powerful tool to patch together different computer programs
 * Providing services with well-behaved APIs is a great way for different teams 
   to colaborate in complex IT projects
-* The plumber package makes it easy to 
+* The plumber package makes it easy to create web services from R Projects, and
 * the httr packages makes it very easy access HTTP APIs
+
+To give you some motivation, in 2002 jeff bezos, the founder of amazon,
+sent an infamous email to all his employees that teams are only allowed to expose 
+their work to other teams through services with well defined APIs, and
+that everyone who doesn comply gets fired. Now Amazon is the worlds most valuable company.
+
 
