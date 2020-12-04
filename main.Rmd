@@ -124,7 +124,7 @@ be processed within minutes
 
 > * 🐒 Manually execute the script each time we receive a new journey
 >
-> * 🧑 Write an R-Script that is callable from the the command line 
+> * 👨 Write an R-Script that is callable from the the command line 
 >
 >     * Makes it hard to ensure a stable R environment
 >     * Maintenance of the script involves another party
